@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 import inquirer
 from bs4 import BeautifulSoup as sp
 import time
+import json
 
 link = 'https://portal.minv.sk/wps/portal/!ut/p/a1/' \
         'jdFBD4IgGAbgn8QLIcoRygDLnJWrvDRPza2sQ-v3R60O' \
@@ -13,48 +14,61 @@ link = 'https://portal.minv.sk/wps/portal/!ut/p/a1/' \
 driver = webdriver.Firefox()
 driver.get(link)
 driver.find_element(By.ID, 'langSK').click()
-buttons = ['submitter1', 'submitter2-print']
+buttons = ['submitter1', 'submitter2-print', 'submitter2-isfine']
 banned_label = ['Účel pobytu *', 'Kategória pobytu *']
 
 current_row = 0
 current_field = 0
 
+button_num = 0
 time.sleep(3)
 src = driver.page_source
+
+person_name = input('Registration for: ')
+registration_fields = {}
 while True:
         src = driver.page_source
         page_src = sp(src, 'html.parser')
         form = page_src.find_all('fieldset')[current_field]
         rows = form.find_all('div', 'row')
         if current_row == len(rows):
+                driver.find_element(By.ID, buttons[button_num]).click()
                 try:
-                        driver.find_element(By.ID, buttons.pop(0)).click()
-                        time.sleep(3)
+                        error = driver.find_element(By.XPATH, "//li[@class='msg error']")
+                        print('Error was found')
                 except:
-                        pass
+                        print('Error was not found')
+                        button_num += 1
+                        time.sleep(3)
                 current_row = 0
                 current_field += 1
                 continue
         row = rows[current_row]
-        label = row.find('div', 'key').get_text().strip()
-        if row.parent.get('class')[0] == 'hidden' or label in banned_label:
-                current_row+=1
+        if row.parent.get('class')[0] == 'hidden':
+                current_row += 1
                 continue
         field = row.find('div', 'value').next_element.next_element
-        print(field.get('class', []))
-        if 'required' in field.get('class', []):
-                id = field.get('id')
-                if field.name == 'select':
-                        question = inquirer.List(id, message=label, choices=[option.text.strip() for option in field.find_all('option')][1:], carousel=True),
+        field_id = field.get('id')
+        try:
+                label = driver.find_element(By.XPATH, f"//label[@for='{field_id}']").text.strip()
+        except:
+                current_row += 1
+                continue
+        name = field.name
+        if '*' in label and label not in banned_label:
+                if name == 'select':
+                        options = driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]').find_elements(By.TAG_NAME, 'option')
+                        question = inquirer.List(field_id, message=label, choices=[option.text.strip() for option in options][1:], carousel=True),
                         answer = inquirer.prompt(question)
-                        driver.find_element(By.XPATH, f'//{field.name}[@id="{id}"]/option[text()="{answer[id]}"]').click()
-                        current_row += 1
+                        driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]/option[text()="{answer[field_id]}"]').click()
 
-                elif field.name == 'input':
-                        question = [inquirer.Text(id, message=label)]
+                elif name == 'input':
+                        question = [inquirer.Text(field_id, message=label)]
                         answer = inquirer.prompt(question)
-                        print(answer)
-                        driver.find_element(By.XPATH, f'//{field.name}[@id="{id}"]').send_keys(answer[id])
-                        current_row += 1
+                        driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]').send_keys(answer[field_id])
+
+                registration_fields[field_id] = [answer[field_id], name]
+                print(registration_fields)
+                current_row += 1
         else:
                 current_row += 1
