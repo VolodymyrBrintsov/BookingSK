@@ -13,30 +13,39 @@ link = 'https://portal.minv.sk/wps/portal/!ut/p/a1/' \
 driver = webdriver.Firefox()
 driver.get(link)
 driver.find_element(By.ID, 'langSK').click()
-time.sleep(3)
+buttons = ['submitter1', 'submitter2-print']
+banned_label = ['Účel pobytu *', 'Kategória pobytu *']
 
 current_row = 0
 current_field = 0
+
+time.sleep(3)
+src = driver.page_source
 while True:
-        page_src = sp(driver.page_source, 'html.parser')
+        src = driver.page_source
+        page_src = sp(src, 'html.parser')
         form = page_src.find_all('fieldset')[current_field]
         rows = form.find_all('div', 'row')
         if current_row == len(rows):
-                driver.find_element(By.ID, 'submitter1').click()
+                try:
+                        driver.find_element(By.ID, buttons.pop(0)).click()
+                        time.sleep(3)
+                except:
+                        pass
                 current_row = 0
                 current_field += 1
-                time.sleep(5)
                 continue
         row = rows[current_row]
-        if row.parent.get('class')[0] == 'hidden' or row.get('type') == 'hidden':
+        label = row.find('div', 'key').get_text().strip()
+        if row.parent.get('class')[0] == 'hidden' or label in banned_label:
                 current_row+=1
                 continue
-        label = row.find('div', 'key').get_text().strip()
-        if '*' in label:
-                field = row.find('div', 'value').next_element.next_element
+        field = row.find('div', 'value').next_element.next_element
+        print(field.get('class', []))
+        if 'required' in field.get('class', []):
                 id = field.get('id')
                 if field.name == 'select':
-                        question = inquirer.List(id, message=label, choices=[option.text.strip() for option in field.find_all('option')]),
+                        question = inquirer.List(id, message=label, choices=[option.text.strip() for option in field.find_all('option')][1:], carousel=True),
                         answer = inquirer.prompt(question)
                         driver.find_element(By.XPATH, f'//{field.name}[@id="{id}"]/option[text()="{answer[id]}"]').click()
                         current_row += 1
