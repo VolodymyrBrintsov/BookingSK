@@ -249,7 +249,7 @@
         "submitter2-isfine": [
             "button"
         ],
-        "status": "disabled"
+        "status": "enabled"
     },
     "Test": {
         "f1-citizenship": [
