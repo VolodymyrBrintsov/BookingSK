@@ -21,10 +21,14 @@ current_row = 0
 current_field = 0
 button_num = 0
 
-person_name = input('Registration for: ')
-fill_ulica_blank = inquirer.prompt([inquirer.List('answer', message='Заполняем Ulica или Súpisné číslo?', choices=['Súpisné číslo', 'Ulica'], carousel=True)])
+person_name = input('Регистрация для: ')
+fill_ulica_blank = inquirer.prompt([inquirer.List('answer', message='Заполняем Ulica или Súpisné číslo?', choices=['Súpisné číslo *', 'Ulica'], carousel=True)])
+if fill_ulica_blank['answer'] == 'Ulica':
+    banned_label.append('Súpisné číslo *')
+else:
+    banned_label.append('Ulica')
 registration_fields = {}
-previous_field = ''
+previous_labels = ['first_label']
 
 def correct_backspace(S):
     q = []
@@ -41,7 +45,6 @@ def correct_backspace(S):
 
 while button_num<3:
         src = driver.page_source
-        print(previous_field)
         page_src = sp(src, 'html.parser')
         form = page_src.find_all('fieldset')[current_field]
         rows = form.find_all('div', 'row')
@@ -50,9 +53,7 @@ while button_num<3:
                 time.sleep(5)
                 try:
                         error = driver.find_element(By.XPATH, "//li[@class='msg error']")
-                        print('Error was found')
                 except:
-                        print('Error was not found')
                         if button_num == 1:
                                 window_before = driver.window_handles[0]
                                 driver.switch_to.window(window_before)
@@ -69,17 +70,20 @@ while button_num<3:
         field_id = field.get('id')
         try:
                 label = driver.find_element(By.XPATH, f"//label[@for='{field_id}']").text.strip()
+                previous_labels.append(label)
         except:
                 current_row += 1
                 continue
         name = field.name
-        previous_field = label
-        if ('*' in label and label not in banned_label) or (fill_ulica_blank['answer'] == label and '*' in previous_field):
+        if ('*' in label and label not in banned_label) or (fill_ulica_blank['answer'] == label and '*' in previous_labels[-2]):
                 if name == 'select':
                         options = driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]').find_elements(By.TAG_NAME, 'option')
                         question = inquirer.List(field_id, message=label, choices=[option.text.strip() for option in options][1:], carousel=True),
                         answer = inquirer.prompt(question)
-                        driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]/option[text()="{answer[field_id]}"]').click()
+                        try:
+                            driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]/option[text()="{answer[field_id]}"]').click()
+                        except:
+                            pass
 
                 elif name == 'input':
                         question = [inquirer.Text(field_id, message=label)]
@@ -87,7 +91,6 @@ while button_num<3:
                         driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]').send_keys(correct_backspace(answer[field_id]))
 
                 registration_fields[field_id] = [correct_backspace(answer[field_id]), name]
-                print(registration_fields)
                 current_row += 1
         else:
                 current_row += 1
