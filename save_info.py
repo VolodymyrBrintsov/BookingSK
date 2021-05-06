@@ -19,15 +19,29 @@ banned_label = ['Účel pobytu *', 'Kategória pobytu *']
 
 current_row = 0
 current_field = 0
-
 button_num = 0
-time.sleep(3)
-src = driver.page_source
 
 person_name = input('Registration for: ')
+fill_ulica_blank = inquirer.prompt([inquirer.List('answer', message='Заполняем Ulica или Súpisné číslo?', choices=['Súpisné číslo', 'Ulica'], carousel=True)])
 registration_fields = {}
+previous_field = ''
+
+def correct_backspace(S):
+    q = []
+    for i in range(0, len(S)):
+        if S[i] != '\x08':
+            q.append(S[i])
+        elif len(q) != 0:
+            q.pop()
+    ans = ""
+    while len(q) != 0:
+        ans += q[0]
+        q.pop(0)
+    return ans
+
 while button_num<3:
         src = driver.page_source
+        print(previous_field)
         page_src = sp(src, 'html.parser')
         form = page_src.find_all('fieldset')[current_field]
         rows = form.find_all('div', 'row')
@@ -59,7 +73,8 @@ while button_num<3:
                 current_row += 1
                 continue
         name = field.name
-        if '*' in label and label not in banned_label:
+        previous_field = label
+        if ('*' in label and label not in banned_label) or (fill_ulica_blank['answer'] == label and '*' in previous_field):
                 if name == 'select':
                         options = driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]').find_elements(By.TAG_NAME, 'option')
                         question = inquirer.List(field_id, message=label, choices=[option.text.strip() for option in options][1:], carousel=True),
@@ -69,9 +84,10 @@ while button_num<3:
                 elif name == 'input':
                         question = [inquirer.Text(field_id, message=label)]
                         answer = inquirer.prompt(question)
-                        driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]').send_keys(answer[field_id])
+                        driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]').send_keys(correct_backspace(answer[field_id]))
 
-                registration_fields[field_id] = [answer[field_id], name]
+                registration_fields[field_id] = [correct_backspace(answer[field_id]), name]
+                print(registration_fields)
                 current_row += 1
         else:
                 current_row += 1
