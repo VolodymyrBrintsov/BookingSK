@@ -94,12 +94,12 @@ while button_num<3:
                 current_row += 1
         else:
                 current_row += 1
-
-with open('data.json', 'r+') as file:
+registration_fields['status'] = 'enabled'
+with open('data.json', 'r+', encoding='utf-8') as file:
     data = json.load(file)
 file.close()
 
-with open('data.json', 'w+') as file:
+with open('data.json', 'w+', encoding='utf-8') as file:
     data[person_name] = registration_fields
-    json.dump(data, file)
+    json.dump(data, file, indent=4)
 file.close()
