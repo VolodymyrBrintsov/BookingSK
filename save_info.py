@@ -26,20 +26,24 @@ src = driver.page_source
 
 person_name = input('Registration for: ')
 registration_fields = {}
-while True:
+while button_num<3:
         src = driver.page_source
         page_src = sp(src, 'html.parser')
         form = page_src.find_all('fieldset')[current_field]
         rows = form.find_all('div', 'row')
         if current_row == len(rows):
                 driver.find_element(By.ID, buttons[button_num]).click()
+                time.sleep(5)
                 try:
                         error = driver.find_element(By.XPATH, "//li[@class='msg error']")
                         print('Error was found')
                 except:
                         print('Error was not found')
+                        if button_num == 1:
+                                window_before = driver.window_handles[0]
+                                driver.switch_to.window(window_before)
+                        registration_fields[buttons[button_num]] = ['button']
                         button_num += 1
-                        time.sleep(3)
                 current_row = 0
                 current_field += 1
                 continue
@@ -68,7 +72,15 @@ while True:
                         driver.find_element(By.XPATH, f'//{name}[@id="{field_id}"]').send_keys(answer[field_id])
 
                 registration_fields[field_id] = [answer[field_id], name]
-                print(registration_fields)
                 current_row += 1
         else:
                 current_row += 1
+
+with open('data.json', 'r+') as file:
+    data = json.load(file)
+file.close()
+
+with open('data.json', 'w+') as file:
+    data[person_name] = registration_fields
+    json.dump(data, file)
+file.close()
