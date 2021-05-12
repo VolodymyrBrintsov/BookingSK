@@ -11,7 +11,7 @@ link = 'https://portal.minv.sk/wps/portal/!ut/p/a1/' \
         'UmimoqIAwD3YeYAfo9DPYxlNUVJjdW7AwNkrHwC9fGLX_tLZNLKyXI' \
         'xg6Gf-G_TyRU4FVJWvtZIVg3m_f2yU5fH80ShhcBNtJ7HMASf-ywfAwP42p' \
         'H4SypijeuVJUkoo40TMUk2R0AHg8AKhDk8Q-qRgTURDgJPLqfKzRetadwfspzGT/dl5/d5/L2dBISEvZ0FBIS9nQSEh/'
-driver = webdriver.Firefox()
+driver = webdriver.Chrome()
 driver.get(link)
 driver.find_element(By.ID, 'langSK').click()
 buttons = ['submitter1', 'submitter2-print', 'submitter2-isfine']
